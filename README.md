@@ -4,3 +4,5 @@ by myself. All projects are written in Python Jupyter Notebooks, unless stated o
 
 ## Contents 
 - ### Bioinformatics 
+    - [Gene Finder](https://github.com/siddsabata/portfolio/tree/master/Gene%20Finder): A program to 
+convert GenBank data into easy-to-read gene tables. 
