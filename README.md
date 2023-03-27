@@ -6,4 +6,4 @@ by myself. All projects are written in Python Jupyter Notebooks, unless stated o
 - ### Bioinformatics 
     - [Gene Finder](https://github.com/siddsabata/portfolio/tree/master/Gene%20Finder): A program to 
 convert GenBank data into easy-to-read gene tables. 
-    - [gRNA Generator](): A high throughput script to generate CRISPR Cas9 guide RNA molecules. 
+    - [gRNA Generator](https://github.com/siddsabata/portfolio/tree/master/gRNA%20Generator): A high throughput script to generate CRISPR Cas9 guide RNA molecules. 
