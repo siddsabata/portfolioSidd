@@ -1,4 +1,4 @@
-theme: Minimal
+theme: minimal
 
 # Portfolio 
 This is a repository containing projects I have completed with various online courses, and 
