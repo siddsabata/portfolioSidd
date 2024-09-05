@@ -10,4 +10,6 @@ convert GenBank data into easy-to-read gene tables.
 - ### Data Visualization
     - [Climate Data Visualization](https://github.com/siddsabata/portfolio/blob/master/Climate%20Data%20Visualization/main.ipynb): Coursera's Applied Plotting, Charting & Data Representation in Python final assignment that describes climate trends in Ann Arbor, MI
 - ### Dynamical System Modeling
-    - [True Lorenz System Approximation](https://github.com/siddsabata/portfolio/blob/master/True%20Lorenz%20System%20Approximation/lorenz_basis.ipynb): A notebook showcasing the modeling of a non-linear dynamical system, and the regression of synthetically generated data. 
+    - [True Lorenz System Approximation](https://github.com/siddsabata/portfolio/blob/master/True%20Lorenz%20System%20Approximation/lorenz_basis.ipynb): A notebook showcasing the modeling of a non-linear dynamical system, and the regression of synthetically generated data.
+- ### Machine Learning
+    - [Predicting protein type from X-ray diffraction data](https://siddsabata.github.io/): A machine learning project from my undergraduate Introduction to Machine Learning class in R utilizing tidyverse and tidymodels. Note: Source code is provided in this repository, but the link will direct to a website hosting the final report. 
