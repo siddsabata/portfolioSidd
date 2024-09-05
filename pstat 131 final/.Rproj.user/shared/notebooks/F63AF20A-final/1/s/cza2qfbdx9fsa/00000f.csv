@@ -1,0 +1,2 @@
+"0","# k-fold cross validation "
+"0","cv_folds <- vfold_cv(protein_train, v = 5, strata = classification)"

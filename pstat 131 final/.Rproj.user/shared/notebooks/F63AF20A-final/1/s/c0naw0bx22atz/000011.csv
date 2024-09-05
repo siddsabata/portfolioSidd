@@ -1,0 +1,3 @@
+"0","roc_curve(final_test, truth = classification, "
+"0","          .pred_HYDROLASE:`.pred_TRANSPORT PROTEIN`) %>% "
+"0","  autoplot()"

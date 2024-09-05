@@ -1,0 +1,7 @@
+"0","ggplot(mpg, aes(x=hwy, y=cty)) +"
+"0","  geom_point(alpha=0.5, color=""blue"") +"
+"0","  labs(title=""Scatterplot of Highway vs. City MPG"", "
+"0","       x=""Highway MPG"", "
+"0","       y=""City MPG"") +"
+"0","  theme_minimal()"
+"0",""

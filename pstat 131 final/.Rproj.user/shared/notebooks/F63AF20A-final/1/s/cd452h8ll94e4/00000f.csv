@@ -1,0 +1,4 @@
+"0","# load tuning results "
+"0","rf_results <- readRDS(""rf_tuning_results.rds"")"
+"0",""
+"0","show_best(rf_results, metric = 'roc_auc')"

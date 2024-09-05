@@ -1,0 +1,5 @@
+"0","# import x-ray diffraction dataset"
+"0","pdb_data <- read.csv(""data/pdb_data_no_dups.csv"") "
+"0",""
+"0","pdb_data %>% "
+"0","  head()"

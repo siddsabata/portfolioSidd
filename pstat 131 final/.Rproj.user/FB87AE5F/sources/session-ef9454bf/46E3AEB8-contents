@@ -1,0 +1,17 @@
+structureID: Unique identifier used for the RCSB Protein Data Bank.
+
+classification: Class of molecule that is being measured
+
+experimentalTechnique: Technique used to gather information about the biomolecule. We're only going to work with X-ray diffraction (89% of the data has X-ray diffraction data, 126512 observations)
+
+macromoleculeType: Type of macromolecule being used.
+
+residueCount: The number of amino acid residues present in the sample. A residue is what remains of an amino acid after a water molecule has been removed in a peptide bond formation.
+
+resolution: This is one of the most important parameters in X-ray crystallography. It indicates the level of detail of the structure that can be reliably determined. Resolution is typically given in Ångströms (Å). A lower value indicates a higher resolution. For example, a resolution of 1.5Å is higher (and thus better) than 3.0Å. Structures with resolutions below 2.0Å are generally considered to be of high quality and can provide details like the positions of individual atoms and even some solvent molecules.
+
+structureMolecularWeight: Molecular weight of the molecule in Daltons (Da).
+
+densityMatthews: Matthews coefficient. Gives an estimate of the solvent content of the crystal and is a ratio of the volume occupied by the protein to the total unit cell volume. High values (above 3.5 Å³/Da) might indicate issues with the crystal or potential errors.
+
+densityPercentSol: Percent of molecule in the solution.

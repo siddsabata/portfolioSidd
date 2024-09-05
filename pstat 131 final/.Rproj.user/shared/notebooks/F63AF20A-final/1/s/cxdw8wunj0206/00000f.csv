@@ -1,0 +1,7 @@
+"0","ggplot(protein_data, aes(x = classification)) + "
+"0","  geom_bar() +"
+"0","  theme_minimal() +"
+"0","  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +"
+"0","  labs(title = ""Counts of Each Classification"", "
+"0","       x = ""Classification"", "
+"0","       y = ""Count"")"

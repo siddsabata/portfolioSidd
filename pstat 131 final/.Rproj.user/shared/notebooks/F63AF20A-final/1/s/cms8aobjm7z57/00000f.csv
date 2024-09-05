@@ -1,0 +1,3 @@
+"0","# first, we're only going to work with protein data"
+"0","protein_data <- pdb_data %>% "
+"0","  dplyr::filter(!str_detect(classification, ""DNA"") & !str_detect(classification, ""RNA""))"

@@ -1,0 +1,538 @@
+---
+title: "Predicting protein type from X-ray diffraction data"
+author: Siddharth Sabata 
+output: 
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: show
+---
+
+[![](1200px-DHRS7B_homology_model.png)](https://www.google.com/url?sa=i&url=https%3A%2F%2Fen.wikipedia.org%2Fwiki%2FHomology_modeling&psig=AOvVaw0sHIEdZvfX-TOnn7OLilZC&ust=1702598218443000&source=images&cd=vfe&opi=89978449&ved=0CBIQjRxqFwoTCPCLi-fOjYMDFQAAAAAdAAAAABAD)
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+# Introduction
+
+The aim of this project is to develop a model that predicts protein type based off of X-ray diffraction measurements.
+
+### What are proteins?
+
+Proteins are complex biomolecules essential to all living organisms. Composed of amino acids, they play a critical role in biological processes such as cell signaling, immune responses, and metabolic functions. Protein structures are heavily linked to their function. Understanding protein structures is a problem that can give important insights that will help better understand diseases, drug targets, and many more applications in the biotechnology realm.
+
+### What is X-Ray diffraction?
+
+A powerful technique for figuring out a crystal's atomic and molecular structure is X-ray diffraction (XRD). An X-ray beam diffracts into numerous distinct directions when it meets with a material's crystalline structure. Through the measurement of these diffracted beams' angles, XRD is able to create a three-dimensional image of the electrons inside the crystal. The mean positions of the atoms in the crystal, their chemical bonds, their disorder, and other details are then determined using this information. Within the study of proteins, X-ray diffraction (XRD) is very important because it helps scientists understand the structures of proteins, which is essential for comprehending their function and interactions with other molecules.
+
+### Why is this model relevant?
+
+Machine learning algorithms for protein classification analysis of X-ray diffraction data are particularly relevant. These models can be faster and more accurate in determining the function of a protein based off structural data. Scientists can simply use a machine learning model to determine what a protein does, instead of long and arduous experiments. This can especially help in the field of drug discovery, where speed is sometimes key as seen during the COVID-19 pandemic.
+
+### Project roadmap
+
+With some background on this project, we can now outline how these models are going to be trained. We'll first import the [Structural Protein Sequences](https://www.kaggle.com/datasets/shahir/protein-data-set?select=pdb_data_no_dups.csv) Kaggle dataset. Next, the data will be cleaned and some exploratory data analysis will be done. After this, the data will be split into training and testing datasets and subsequently trained with five models. These five are K-nearest neighbors, elastic net, multinomial logistic regression, random forest, and boosted tree models. Lastly, we'll choose the best performing model and apply it to the testing dataset and see how it performs.
+
+# Exploratory Data Analysis
+
+### Import libraries
+
+```{r results = FALSE}
+library(janitor)
+library(tidyverse)
+library(tidymodels)
+library(ggplot2)
+library(corrplot)
+library(ggthemes)
+library(kableExtra)
+library(themis)
+library(ranger)
+library(xgboost)
+library(vip)
+tidymodels_prefer()
+```
+
+### Import dataset
+
+This dataset contains two files: `pdb_data_no_dups.csv` and `pdb_data_seq.csv`. For this project, we will focus on the first file, `pdb_data_no_dups.csv`, since it contains the X-Ray diffraction data.
+
+```{r}
+# import x-ray diffraction dataset
+pdb_data <- read.csv("data/pdb_data_no_dups.csv") 
+
+pdb_data %>% 
+  head()
+```
+
+### Codebook
+
+This dataset contains 141401 observations with 14 variables.
+
+| Variable                 | Description                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|-------------------|------------------------------------------------------------|
+| structureID              | Unique identifier used for the [RCSB Protein Data Bank](https://www.rcsb.org/).                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+| classification           | Class of molecule that is being measured                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| experimentalTechnique    | Technique used to gather information about the biomolecule. We're only going to work with X-ray diffraction (89% of the data has X-ray diffraction data, 126512 observations)                                                                                                                                                                                                                                                                                                                                         |
+| macromoleculeType        | Type of macromolecule being used.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| residueCount             | The number of amino acid residues present in the sample. A residue is what remains of an amino acid after a water molecule has been removed in a peptide bond formation.                                                                                                                                                                                                                                                                                                                                              |
+| resolution               | This is one of the most important parameters in X-ray crystallography. It indicates the level of detail of the structure that can be reliably determined. Resolution is typically given in Ångströms (Å). A lower value indicates a higher resolution. For example, a resolution of 1.5Å is higher (and thus better) than 3.0Å. Structures with resolutions below 2.0Å are generally considered to be of high quality and can provide details like the positions of individual atoms and even some solvent molecules. |
+| structureMolecularWeight | Molecular weight of the molecule in Daltons (Da).                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
+| densityMatthews          | Matthews coefficient. Gives an estimate of the solvent content of the crystal and is a ratio of the volume occupied by the protein to the total unit cell volume. High values (above 3.5 Å³/Da) might indicate issues with the crystal or potential errors.                                                                                                                                                                                                                                                           |
+| densityPercentSol        | Percent of molecule in the solution.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+
+There are more variables, but they pertain to redundant information and experimental techniques that are not going to be addressed in this project.
+
+### Data cleaning
+
+First, let's get rid of the DNA and RNA measurements in the dataset.
+
+```{r}
+# first, we're only going to work with protein data
+protein_data <- pdb_data %>% 
+  dplyr::filter(!str_detect(classification, "DNA") & !str_detect(classification, "RNA"))
+```
+
+Next, let's look at how many different types of proteins we have.
+
+```{r}
+# number check unique classifiers 
+length(unique(protein_data$classification))
+```
+
+As we can see here, There are `4416` unique classifiers under the classification section. For this project, we are going to choose the top 10 most prevalent types.
+
+### Create working dataframe
+
+```{r}
+# with the counts of the top classifiers in mind, we're going to keep the top 10 classifiers 
+protein_data_top10 <- protein_data %>% 
+  group_by(classification) %>% 
+  summarise(count=n()) %>% 
+  arrange(-count) %>% 
+  slice_head(n=10) %>% 
+  select(classification)
+
+# creating working dataframe
+protein_data <- protein_data %>% 
+  semi_join(protein_data_top10, by='classification') %>% 
+  dplyr::filter(experimentalTechnique == 'X-RAY DIFFRACTION') %>% 
+  select(-c(crystallizationMethod, pdbxDetails, crystallizationTempK, publicationYear, 
+            experimentalTechnique, macromoleculeType, phValue)) %>% 
+  na.omit() %>% 
+  mutate(classification = factor(classification)) %>% 
+  clean_names()
+```
+
+Let's break down what steps were just taken to create our cleaned dataframe:
+
+1.  The dataframe was filtered to only include the top 10 most common protein types.
+
+2.  The dataframe was filtered to only keep X-Ray diffraction data.
+
+3.  Redundant columns were removed.
+
+4.  Rows with `NA` values were removed due to the abundance of data.
+
+5.  The `classification` column was turned into a factor for later steps.
+
+6.  The names of the variables were standardized into snake case.
+
+Let's see what our cleaned dataframe looks like.
+
+```{r}
+dim(protein_data)
+```
+
+We have `7` variables with `68903` observations.
+
+```{r}
+protein_data %>% 
+  head()
+```
+
+### Check for correlated variables
+
+Before we can begin applying our models, we should check for correlated variables. This step is crucial because correlated variables can throw off our model.
+
+```{r}
+# create correlation matrix
+cor_matrix <- cor(protein_data[, sapply(protein_data, is.numeric)])
+cor_matrix[upper.tri(cor_matrix, diag = TRUE)] <- NA
+corrplot(cor_matrix, na.label = "  ", method = "color", tl.cex = 0.7)
+cor_matrix
+```
+
+Based off this plot, we can see that `residue_count` and `structure_molecular_weight` have a strong positive correlation of `0.988`. This is an indication that we should perform principal component analysis (PCA) on these two variables. PCA is a method that is used when multiple variables are positively correlated. This method basically extracts another "component" that accurately represents the two correlated variables in one variable.
+
+### Plot counts of each classification
+
+We also want to check how many of each protein type we have. If a handful of variables are under or over represented, it can skew the training and testing data, thereby skewing our model.
+
+```{r}
+ggplot(protein_data, aes(x = classification)) + 
+  geom_bar() +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  labs(title = "Counts of Each Classification", 
+       x = "Classification", 
+       y = "Count")
+```
+
+It is clear that `HYDROLASE`, `OXIDOREDUCTASE`, and `TRANSFERASE` are extremely over-represented in this dataset. This is an indication that we should down-sample these three variables to prevent the model from being biased.
+
+# Recipe
+
+### Split data
+
+We're going to split our data in this step. After setting a random seed, so our results can be replicated, we split our data at an 80-20 (80% training, 20% testing) ratio. We can get away with a higher training proportion due to the sheer number of observations we have.
+
+```{r}
+set.seed(1234)
+# create training and test datasets 
+protein_split <- initial_split(protein_data, prop = 0.8, strata = classification)
+protein_train <- training(protein_split)
+protein_test <- testing(protein_split)
+```
+
+```{r}
+dim(protein_train)
+```
+
+```{r}
+dim(protein_test)
+```
+
+### K-fold cross validation
+
+K-fold cross-validation is a resampling method used to look at the performance of a machine learning model. The training dataset is split into `k` folds, or groups, at random. The model is trained on `k-1` folds and then validated on the last `k`th set. This process is repeated `k` times, using a different validation set each time. The final metrics are an average of all of the folds. This method reduces the possibility of overfitting. It makes sure that every observation is used to train and test the data. This methodology reduces the amount of variance a single observation can have on a model. Typically one chooses `k=5` or `k=10` because they achieve a good bias-variance tradeoff. We're going to choose `k=5`. We are also going to stratify the cross validation based on `classification` because our outcome has inbalanced classes. Stratifying will help reduce bias and variance for each fold.
+
+```{r}
+# k-fold cross validation 
+cv_folds <- vfold_cv(protein_train, v = 5, strata = classification)
+```
+
+### Create recipe
+
+Since we are using the same predictors and preprocessing steps for all five of our models, we are going to create a "recipe" that will adequately prepare our data for us to be applied to the models.
+
+```{r}
+# create recipe 
+protein_recipe <- recipe(classification ~ residue_count + resolution + 
+                           structure_molecular_weight + density_matthews + 
+                           density_percent_sol, data = protein_train) %>% 
+  step_normalize(all_predictors()) %>% 
+  step_downsample(classification, under_ratio = 2) %>% 
+  step_pca(residue_count, structure_molecular_weight, 
+           num_comp = 1, prefix = "rc_smw_component")
+```
+
+Here is what is going on step by step:
+
+1.  We define our predictors and response variable, along with the dataset we are using to train our data (`protein_train`).
+2.  We center and scale all of our predictors.
+3.  We perform downsampling to account for the imbalanced response classes.
+4.  PCA is done on `residue_count` and `structure_molecular_weight`, and one component named `rc_smw_component` is extracted to replace the two predictors.
+
+### Prep and bake recipe
+
+Prepping and baking the recipe is an intermediate step that is done to make sure all of the operations performed in the recipe are done correctly. Most bugs will be caught in this stage.
+
+```{r}
+# prep and bake
+protein_recipe %>% 
+  prep() %>% 
+  bake(new_data = protein_train)%>% 
+  head()
+```
+
+# Apply models
+
+Now that we have our recipe set up, we are going to train our models. The performance metric used in this report is `roc_auc` which is used to measure the performance of a classification model. The graph is called a Receiver Operating Characteristic (ROC) curve, which plots sensitivity versus specificity. Sensitivity tells us what proportion of the actual positives were correctly identified, while specificity tells us what proportion of the actual negatives were incorrectly identified as positives. The area under the curve (AUC) measures the area under the ROC curve. A value of 0.5 means the model is completely random, while a value of 1 means the model perfectly predicts the values.
+
+### K-nearest neighbors
+
+K-nearest neighbors is a simple machine learning algorithm that, in simple terms, categorizes items based on the items that are most similar to it. There is one parameter we are going to "tune" which is `k`. Tuning is a step used to determine the best parameter value for a model, `k` in this case. This works by performing k-fold cross validation on each parameter value given in the "grid" of tuning values. In this case, we are going from 1-10 neighbors.
+
+```{r}
+# knn 
+knn_mod <- nearest_neighbor(neighbors = tune()) %>%
+  set_mode("classification") %>%
+  set_engine("kknn")
+
+knn_wf <- workflow() %>% 
+  add_model(knn_mod) %>% 
+  add_recipe(protein_recipe)
+
+knn_grid <- grid_regular(neighbors(range = c(1, 10)), levels = 10)
+
+knn_results <- tune_grid(
+  knn_wf,
+  resamples = cv_folds,
+  grid = knn_grid  
+)
+```
+
+Here is exactly what was done in this cell:
+
+1.  The k-nearest neighbor classification model is defined.
+2.  The corresponding workflow is defined where the model and recipe are added.
+3.  A tuning grid is defined, basically a list of values from 1 to 10, for all of the possible `k` values.
+4.  The model is tuned with our workflow, 5-fold cross validation, and our tuning grid.
+
+We can now see how our model performed on the testing set:
+
+```{r}
+show_best(knn_results, metric = 'roc_auc')
+```
+
+```{r}
+autoplot(knn_results, metric = 'roc_auc') + theme_minimal()
+```
+
+Clearly, a value of `k=10` neighbors is best for our data. The ROC AUC is `0.641`, which is not too good.
+
+### Elastic net
+
+Elastic net is a combination of Lasso (L1 regularization) and Ridge regression (L2 regularization). The `penalty` argument tells us how much regularization the model is going to use. The `mixture` argument is the balance between the two types of regularization. A value of `mixture=1` means the model is only using Lasso (L1 regularization).
+
+```{r}
+# elastic net
+en_mod <- multinom_reg(penalty = tune(), mixture = tune()) %>%
+  set_engine("glmnet") %>%
+  set_mode("classification")
+
+en_wf <- workflow() %>%
+  add_model(en_mod) %>%
+  add_recipe(protein_recipe)
+
+en_grid <- grid_regular(penalty(range = c(0, 1),
+                                     trans = identity_trans()),
+                        mixture(range = c(0, 1)),
+                             levels = 10)
+
+en_results <- tune_grid(
+  en_wf,
+  resamples = cv_folds,
+  grid = en_grid  
+)
+```
+
+Here is what is done in this cell:
+
+1.  The elastic net classification model is defined
+2.  The corresponding workflow is defined where the model and recipe are added
+3.  A tuning grid is defined with `penalty` and `mixture` ranging between 0 and 1.
+4.  The model is tuned with our workflow, 5-fold cross validation, and our tuning grid.
+
+Let's take a look at our results:
+
+```{r}
+show_best(en_results, metric = 'roc_auc')
+```
+
+```{r}
+autoplot(en_results, metric = 'roc_auc') + theme_minimal()
+```
+
+The best performing model has `penalty=0` and `mixture=1`. This means that there is no regularization going on, meaning the model is a standard logistic regression model. The ROC AUC of the best model here is `0.598`.
+
+### Multinomial logistic regression
+
+Multinomial logistic regression works like linear regression, where you have a line/plane that predicts values. However this model predicts probabilities instead of continuous values. The multinomial component comes in because logistic regression only works for binary classification problems, so a few things are changed for non-binary cases. There is no parameters that need to be tuned in this case.
+
+```{r}
+# logistic regression
+log_mod <- multinom_reg(penalty = 0) %>%
+  set_engine("glmnet") %>%
+  set_mode("classification")
+
+log_wf <- workflow() %>%
+  add_model(log_mod) %>%
+  add_recipe(protein_recipe)
+
+log_results <- fit_resamples(
+  object = log_wf, 
+  resamples = cv_folds
+)
+```
+
+Here is what is done in this cell:
+
+1.  The multinomial logistic regression classification model is defined.
+2.  The corresponding workflow is defined where the model and recipe are added.
+3.  The 5-fold cross validation is performed.
+
+Let's see how our model performed:
+
+```{r}
+show_best(log_results, metric = 'roc_auc')
+```
+
+These results align very closely with the elastic net results. The best elastic net model was basically a multinomial regression model with an ROC AUC of `0.598`. The model here has the exact same ROC AUC all the way to 7 decimal places. Once again, this model is not the best performer.
+
+### Random forest
+
+Random forest models are a collection of many decision trees, a forest, each of which is built from a random subset of the data and features. Each tree in the forest makes its own decision. Each tree will vote for a class and the class with the most votes becomes the model's prediction. There are three parameters we need to tune in this case:
+
+-   `mtry` is an integer for the number of randomly selected predictors sampled at each split in a tree.
+
+-   `trees` is the number of trees in the forest.
+
+-   `min_n` is the minimum number of data points needed for a split in a tree.
+
+```{r}
+rf_mod <- rand_forest(mtry = tune(), 
+                      trees = tune(), 
+                      min_n = tune()) %>%
+  set_engine("ranger", importance = "impurity") %>% 
+  set_mode("classification")
+
+rf_grid <- grid_regular(mtry(range = c(1, 4)), 
+                        trees(range = c(200, 600)),
+                        min_n(range = c(10, 20)),
+                        levels = 10)
+
+rf_wf <- workflow() %>% 
+  add_model(rf_mod) %>% 
+  add_recipe(protein_recipe)
+```
+
+```{r eval=FALSE}
+# this chunk is run in a separate `.r` file to make knitting faster 
+rf_results <- tune_grid(
+  rf_wf,
+  resamples = cv_folds,
+  grid = rf_grid
+)
+```
+
+Here is what is done in this cell:
+
+1.  The random forest classification model is defined.
+2.  A tuning grid is created for `mtry`, `trees`, and `min_n`.
+3.  The corresponding workflow is defined where the model and recipe are added.
+4.  The model is tuned with the defined workflow, cross validation folds, and tuning grid. This step is done in a separate `.r` file due to the computation time.
+
+Let's load our tuning results and see the results.
+
+```{r}
+# load tuning results 
+rf_results <- readRDS("rf_tuning_results.rds")
+
+show_best(rf_results, metric = 'roc_auc')
+```
+
+```{r}
+autoplot(rf_results, metric = 'roc_auc') + theme_minimal()
+```
+
+The best model had `mtry=4`, `min_n=18`, and `trees=600` with an ROC AUC of `0.759`. The trend is quite clear in the chart above. Changing the number of randomly selected predictors, `mtry`, had the biggest impact on ROC AUC, but there was not much difference between 3 and 4 randomly selected predictors. Node size, `min_n`, did not play much of a role and there is a slightly positive relation with the number of trees, `trees`. This model performed quite well.
+
+### Boosted tree
+
+Boosted tree models are somewhat similar to random forests because they make use of many decision trees. However, each tree is built sequentially unlike random forests. In a process called "boosting", each new tree learns from the mistakes of the previous trees. There are three parameters that we need to tune again:
+
+-   `mtry` is an integer for the number of randomly selected predictors sampled at each split in a tree.
+
+-   `trees` is the number of trees in the forest.
+
+-   `learn_rate` is the rate at which the boosting algorithm works from generation to generation.
+
+```{r}
+bt_mod <- boost_tree(mtry = tune(), 
+                     trees = tune(), 
+                     learn_rate = tune()) %>%
+  set_engine("xgboost") %>% 
+  set_mode("classification")
+
+bt_grid <- grid_regular(mtry(range = c(1, 4)), 
+                        trees(range = c(200, 600)),
+                        learn_rate(range = c(-10, -1)),
+                        levels = 10)
+
+bt_wf <- workflow() %>% 
+  add_model(bt_mod) %>% 
+  add_recipe(protein_recipe)
+```
+
+```{r eval = FALSE}
+# this chunk is ran in a separate `.r` file to make knitting faster 
+bt_results <- tune_grid(
+  bt_wf,
+  resamples = cv_folds,
+  grid = bt_grid
+)
+```
+
+Here is what is done in this cell:
+
+1.  The random forest classification model is defined.
+2.  A tuning grid is created for `mtry`, `trees`, and `learn_rate`.
+3.  The corresponding workflow is defined where the model and recipe are added.
+4.  The model is tuned with the defined workflow, cross validation folds, and tuning grid. This step is done in a separate `.r` file due to the computation time.
+
+Let's load our tuning results and see the results.
+
+```{r}
+bt_results <- readRDS("bt_tuning_results.rds")
+show_best(bt_results, metric = 'roc_auc')
+```
+
+```{r}
+autoplot(bt_results, metric = 'roc_auc') + theme_minimal()
+```
+
+The best model had `mtry=3`, `learn_rate=0.1`, and `trees=600` with an ROC AUC of `0.752`. It is clear that larger learning rates result in higher ROC AUC scores. All of the `m_try` and `tree` values seemed to have worked about the same, with `tree` having a slightly positive trend. This was another well performing model.
+
+# Fitting the final model 
+
+Our best overall model was the random forest model with `mtry=4`, `trees=600`, and `min_n=18`. The testing ROC AUC was `0.759`. Because of this, we are going to see how this model performs with our testing data.
+
+```{r echo = FALSE}
+best_rf <- select_best(rf_results)
+final_wf <- finalize_workflow(rf_wf, best_rf)
+final_fit <- fit(final_wf, protein_train)
+
+final_test <- augment(final_fit, new_data = protein_test) %>%
+  select(classification, starts_with(".pred"))
+```
+
+Here is what this code chunk is doing:
+
+1.  The best random forest model is selected based off of ROC AUC.
+2.  The workflow is created with the original random forest workflow and best model.
+3.  The model is fit to the training data.
+4.  The testing data is used to evaluate the model's performance.
+
+Let's see what our ROC AUC is:
+
+```{r}
+roc_auc(final_test, truth = classification, .pred_HYDROLASE:`.pred_TRANSPORT PROTEIN`)
+```
+
+The testing ROC AUC is a little higher than our training ROC AUC at `0.769`. This suggests that the model generalizes well and does not overfit.
+
+Let's create a variable importance plot (VIP) to see what variables are the most useful:
+
+```{r}
+final_fit %>% extract_fit_parsnip() %>% 
+  vip() +
+  theme_minimal()
+```
+
+The PCA component between `residue_count` and `structure_molecular_weight` is the most useful predictor, with the other three right behind it.
+
+Now let's see how accurately each protein type was predicted:
+
+```{r}
+roc_curve(final_test, truth = classification, 
+          .pred_HYDROLASE:`.pred_TRANSPORT PROTEIN`) %>% 
+  autoplot()
+```
+
+Most protein types were predicted quite well. However `HYDROLASE` and `TRANSFERASE` did not perform as well as the other response classes.
+
+# Conclusion 
+
+Through this entire process from cleaning the data to training the models, the random forest algorithm is best at predicting protein type based off X-Ray diffraction measurements. The ROC AUC for the training data was `0.759`, and the testing ROC AUC was `0.769`. Even though this isn't an excellent model, it does successfully predict protein type without overfitting. In the future, trying more folds in cross-validation is something that could be worth exploring due to the size of the dataset. On top of this, trying other classification models like LDA, QDA, and support vector machines (SVMs) are also worth exploring to see if the training ROC AUC of `0.759` can be beaten. Overall, this project was an amazing experience that taught the full machine learning pipeline.

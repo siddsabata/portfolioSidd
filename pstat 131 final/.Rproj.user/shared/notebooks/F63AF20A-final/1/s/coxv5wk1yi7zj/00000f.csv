@@ -1,0 +1,5 @@
+"0","set.seed(1234)"
+"0","# create training and test datasets "
+"0","protein_split <- initial_split(protein_data, prop = 0.8, strata = classification)"
+"0","protein_train <- training(protein_split)"
+"0","protein_test <- testing(protein_split)"

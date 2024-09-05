@@ -1,0 +1,4 @@
+"0","# create correlation matrix"
+"0","cor_matrix <- cor(protein_data[, sapply(protein_data, is.numeric)])"
+"0","cor_matrix[upper.tri(cor_matrix, diag = TRUE)] <- NA"
+"0","corrplot(cor_matrix, na.label = ""  "", method = ""color"", tl.cex = 0.7)"

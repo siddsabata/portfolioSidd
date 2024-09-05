@@ -1,0 +1,7 @@
+"0","# Import the CSV files into R as data frames"
+"0","pdb_data_no_dups <- read.csv(""data/pdb_data_no_dups.csv"")"
+"0","pdb_data_seq <- read.csv(""data/pdb_data_seq.csv"")"
+"0","View(pdb_data_no_dups)"
+"0",""
+"0","# Check the first few rows of the data frames to ensure they've been imported correctly"
+"0","head(pdb_data_no_dups)"

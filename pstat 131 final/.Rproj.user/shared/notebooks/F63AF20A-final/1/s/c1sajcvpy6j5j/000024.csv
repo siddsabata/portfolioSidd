@@ -1,0 +1,7 @@
+"0","best_rf <- select_best(rf_results)"
+"2","Warning: No value of `metric` was given; metric 'roc_auc' will be used."
+"0","final_wf <- finalize_workflow(rf_wf, best_rf)"
+"0","final_fit <- fit(final_wf, protein_train)"
+"0",""
+"0","final_test <- augment(final_fit, new_data = protein_test) %>%"
+"0","  select(classification, starts_with("".pred""))"

@@ -1,0 +1,2 @@
+"0","bt_results <- readRDS(""bt_tuning_results.rds"")"
+"0","show_best(bt_results, metric = 'roc_auc')"

@@ -1,0 +1,5 @@
+"0","# prep and bake"
+"0","protein_recipe %>% "
+"0","  prep() %>% "
+"0","  bake(new_data = protein_train)%>% "
+"0","  head()"

@@ -1,0 +1,7 @@
+"0","ggplot(mpg, aes(x=as.factor(cyl), y=hwy, group=cyl)) +"
+"0","  geom_boxplot(outlier.shape = NA) +  "
+"0","  geom_jitter(alpha=0.5, color=""blue"", position=position_jitter(width=0.3)) +"
+"0","  labs(title=""Boxplot of Highway MPG by Number of Cylinders"", "
+"0","       x=""Number of Cylinders"", "
+"0","       y=""Highway MPG"") +"
+"0","  theme_minimal()"

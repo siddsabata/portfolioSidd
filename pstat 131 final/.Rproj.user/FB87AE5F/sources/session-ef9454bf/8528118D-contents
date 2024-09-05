@@ -1,0 +1,78 @@
+---
+title: "data_memo"
+output:
+  pdf_document: default
+  html_document: default
+date: "2023-10-12"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Data memo
+
+## Overview of dataset
+
+```{r}
+# Import the CSV files into R as data frames
+pdb_data_no_dups <- read.csv("data/pdb_data_no_dups.csv")
+pdb_data_seq <- read.csv("data/pdb_data_seq.csv")
+
+# Check the first few rows of the data frames to ensure they've been imported correctly
+head(pdb_data_no_dups)
+head(pdb_data_seq)
+
+```
+
+This dataset, from [this Kaggle link](https://www.kaggle.com/datasets/shahir/protein-data-set?select=pdb_data_no_dups.csv), contains two `.csv` files. The first one, `pdb_data_no_dups.csv`, contains 141401 observations with 14 variables. Here is a breakdown of the predictors:
+
+**structureID:** Unique identifier used for the [RCSB Protein Data Bank](https://www.rcsb.org/).
+
+**classification:** Class of molecule that is being measured
+
+**experimentalTechnique:** Technique used to gather information about the biomolecule. We're only going to work with X-ray diffraction (89% of the data has X-ray diffraction data, 126512 observations)
+
+**macromoleculeType:** Type of macromolecule being used.
+
+**residueCount:** The number of amino acid residues present in the sample. A residue is what remains of an amino acid after a water molecule has been removed in a peptide bond formation.
+
+**resolution:** This is one of the most important parameters in X-ray crystallography. It indicates the level of detail of the structure that can be reliably determined. Resolution is typically given in Ångströms (Å). A lower value indicates a higher resolution. For example, a resolution of 1.5Å is higher (and thus better) than 3.0Å. Structures with resolutions below 2.0Å are generally considered to be of high quality and can provide details like the positions of individual atoms and even some solvent molecules.
+
+**structureMolecularWeight:** Molecular weight of the molecule in Daltons (Da).
+
+**densityMatthews:** Matthews coefficient. Gives an estimate of the solvent content of the crystal and is a ratio of the volume occupied by the protein to the total unit cell volume. High values (above 3.5 Å³/Da) might indicate issues with the crystal or potential errors.
+
+**densityPercentSol:** Percent of molecule in the solution.
+
+There are more variables, but they pertain to redundant information and experimental techniques that are not going to be addressed in this project.
+
+The majority of the missing data comes from different tests. For example, there are columns with data related to neutron diffraction, which will obviously be missing when that test was not done on a particular protein.
+
+The second file, `pdb_data_seq.csv` contains 467304 observations with 5 variables.
+
+**structureId:** Same as `pdb_data_no_dups.csv`
+
+**chainId:** Gives a unique identifier for the different chains in a macromolecule complex. A single `structureId` can have multiple chains.
+
+**sequence:** Either a DNA or amino acid sequence of the structure
+
+**residueCount:** Same as `pdb_data_no_dups.csv`
+
+**macromoleculeType:** Same as `pdb_data_no_dups.csv`
+
+In terms of missing values, there are a total of 10 missing values in the entire dataset. I think the best move is to disregard the `structureId`s that contain missing values.
+
+## Research questions
+
+Predicting `classification` by using the other relevant variables in this dataset is what I want to look into. The biggest question I want to answer is I want to see if a successful predictive model can be created to predict the classification of a biomolecule based off of X-ray diffraction and sequence data.
+
+This is a classification problem since we are looking to predict categorical data. There are 4051 unique classifications that we can predict. I think molecular weight and resolution are going to be especially helpful.
+
+## Timeline
+
+My goal is to have the data cleaned by the end of this week (Week 3), and then do experimental work from weeks 4-8, and then writing the final report on weeks 9-10.
+
+## Questions
+
+I think the most difficult aspect of this project is going to be dealing with the size of the dataset.

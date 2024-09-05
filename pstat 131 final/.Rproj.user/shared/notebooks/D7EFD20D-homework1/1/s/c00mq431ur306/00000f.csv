@@ -1,0 +1,8 @@
+"0","library(corrplot)"
+"2","corrplot 0.92 loaded
+"
+"0","cor_matrix <- cor(mpg[, sapply(mpg, is.numeric)])"
+"0",""
+"0","cor_matrix[upper.tri(cor_matrix, diag = TRUE)] <- NA"
+"0",""
+"0","corrplot(cor_matrix, na.label = ""  "", method = ""color"", tl.cex = 0.7)"

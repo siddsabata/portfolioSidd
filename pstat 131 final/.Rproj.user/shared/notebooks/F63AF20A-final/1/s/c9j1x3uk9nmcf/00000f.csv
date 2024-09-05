@@ -1,0 +1,8 @@
+"0","# create recipe "
+"0","protein_recipe <- recipe(classification ~ residue_count + resolution + "
+"0","                           structure_molecular_weight + density_matthews + "
+"0","                           density_percent_sol, data = protein_train) %>% "
+"0","  step_normalize(all_predictors()) %>% "
+"0","  step_downsample(classification, under_ratio = 2) %>% "
+"0","  step_pca(residue_count, structure_molecular_weight, "
+"0","           num_comp = 1, prefix = ""rc_smw_component"")"
